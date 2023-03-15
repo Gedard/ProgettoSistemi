@@ -1,0 +1,67 @@
+PROGETTO SISTEMI
+Fase login
+- creazione view di login
+- gestione actionlistener sui pulsanti 'login' e 'signup'
+    login: controllo credenziali
+    signup: criptazione credenziali
+            salvataggio su file csv
+            passaggio a view di login
+Fase creazione stanza
+- creazione view di scelta
+- gestione actionlistener sui pulsanti 'create room' e 'join room'
+    create room: scelta numero di partecipanti tramite radio btns
+                 scelta tempo limite massimo tramite txt area (controllo input)
+                 prossima fase
+    join room: inserimento room ip
+        room esistente: prossima fase
+        room insesistente: gestione exception
+Fase waiting room
+- creazione view
+- aggiornamento in tempo reale di client connessi
+    username -> color
+    numero ci clients
+- gestione actionlistener su pulsante 'start'
+    attivabile solo dall'host
+    attivabile solo quando si raggiunge il numero di client precedentemente dichiarato (fase creazione stanza)
+Fase gioco
+- creazione view
+    aggiornamento in tempo reale del disegno
+    gestione dei panels:
+        top panel: time left + colore assegnato
+        right panel
+            top: chat
+            bottom: disegno da replicare
+        central panel: area di disegno
+- gestione mouselistener su central panel
+    invio di pacchetti al server contententi coordinate del puntatore -> aggiornamento matrice
+- gestione chat tramite thread
+- gestione time left tramite thread
+
+CLASSI
+view
+    login
+        login
+        signup
+    create room
+        choose
+        create room
+        join room
+    waiting room
+        waiting room
+    game
+        chat panel
+        time left panel
+        disegno da replicare panel
+        draw panel
+        game view
+model
+    Server.java
+        LoginManager.java
+            - controllo credenziali
+            - criptazione delle credenziali
+            - invio delle credenziali al server -> salvataggio su file csv
+        RoomManager.java
+            - gestione pulsanti 'create room' e 'join room'
+            - waiting room
+    Client.java
+        - boolean isHost
