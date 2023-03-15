@@ -1,27 +1,33 @@
-package model;
+package model.stages;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import model.Server;
 import utility.Outcome;
 import view.login.VLogin;
 import view.login.VSignup;
 
 public class LoginManager implements ActionListener {
-    VLogin login;
-    VSignup signup;
+    private StageManager stageManager;
+    private VLogin login;
+    private VSignup signup;
 
-    public LoginManager() {
+    public LoginManager(StageManager stageManager) {
+        this.stageManager = stageManager;
         login = new VLogin();
         signup = new VSignup();
 
         initialize();
     }
 
-    private void initialize() {
+    public void initialize() {
         login.setVisible(true);
         login.addListener(this);
         signup.addListener(this);
+
+        login.clear();
+        signup.clear();
     }
 
     @Override
@@ -37,11 +43,12 @@ public class LoginManager implements ActionListener {
             // invio dati al server per login
             boolean outcome = Server.login(user, pw);
 
-            if (outcome)
+            if (outcome) {
                 login.setVisible(false);
-
-                // TODO: passaggio alla fase successiva (creazione stanza)
-            else
+                // passaggio alla fase successiva
+                stageManager.setClientUser(user);
+                stageManager.roomStage();
+            } else
                 login.getLblError().setVisible(true);
         }
 
@@ -68,11 +75,11 @@ public class LoginManager implements ActionListener {
                     break;
 
                 // visualizzo i messaggi di errore
-                case USER:
+                case user_taken:
                     signup.getLblError2().setVisible(false);
                     signup.getLblError1().setVisible(true);
                     break;
-                case PW:
+                case pw_doesnt_match:
                     signup.getLblError2().setVisible(true);
                     signup.getLblError1().setVisible(false);
                     break;

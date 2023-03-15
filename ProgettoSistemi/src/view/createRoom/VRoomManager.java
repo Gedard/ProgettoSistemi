@@ -15,7 +15,7 @@ public class VRoomManager extends JFrame {
 
     private JPanel contentPane;
     private JLabel lblTitle;
-    private JButton btnCreate, btnJoin;
+    private JButton btnCreate, btnJoin, btnLogout;
 
     public VRoomManager() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -23,6 +23,7 @@ public class VRoomManager extends JFrame {
         setLocationRelativeTo(null);
         setVisible(false);
         setResizable(false);
+        setAlwaysOnTop(true);
         contentPane = new JPanel();
         contentPane.setBackground(new Color(255, 255, 255));
         contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -45,11 +46,16 @@ public class VRoomManager extends JFrame {
         btnJoin.setFont(new Font("Tahoma", Font.PLAIN, 15));
         btnJoin.setBounds(97, 97, 139, 23);
         contentPane.add(btnJoin);
+
+        btnLogout = new JButton("Logout");
+		btnLogout.setBounds(123, 131, 89, 23);
+		contentPane.add(btnLogout);
     }
 
     public void addListener(ActionListener reference) {
         btnCreate.addActionListener(reference);
         btnJoin.addActionListener(reference);
+        btnLogout.addActionListener(reference);
     }
 
     public JLabel gteLblTitle() {
@@ -62,6 +68,10 @@ public class VRoomManager extends JFrame {
 
     public JButton getBtnJoin() {
         return btnJoin;
+    }
+
+    public JButton getBtnLogout() {
+        return btnLogout;
     }
 
 }

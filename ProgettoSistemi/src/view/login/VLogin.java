@@ -27,6 +27,7 @@ public class VLogin extends JFrame {
         setLocationRelativeTo(null);
         setVisible(false);
         setResizable(false);
+        setAlwaysOnTop(true);
         contentPane = new JPanel();
         contentPane.setBackground(new Color(255, 255, 255));
         contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
