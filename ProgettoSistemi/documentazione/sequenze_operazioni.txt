@@ -1,0 +1,24 @@
+Apertura server
+Connessione client
+creazione connessione
+	registrazione (opzionale)
+	interfaccia login
+		inserimento
+		encrypt
+		check on db
+	cambio interfaccia: scelta host
+	configurazione stanza / scelta stanza	
+waiting room
+	visualizzazione informazioni
+	inizio (isHost)
+gioco
+	creazione view
+		timePanel
+		chatPanel
+			history
+			input
+		drawPanel
+		imageSrcPanel
+	gestione drawPanel
+
+

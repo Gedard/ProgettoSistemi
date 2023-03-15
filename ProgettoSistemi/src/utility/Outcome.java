@@ -5,5 +5,6 @@ public enum Outcome {
 
     // messaggi di errore per la registrazione
     USER, // utente gia' registrato
-    PW // pw non coincidenti
+    PW, // pw non coincidenti
+    end // chiudere la connessione
 }

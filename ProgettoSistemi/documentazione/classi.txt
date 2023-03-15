@@ -1,0 +1,29 @@
+Model 
+Classi principali:
+    server
+    room
+    connection
+    client
+
+server
+    arrayList<room>
+room
+    arrayList<connection>
+    timer
+    chatHistory
+    immagineDaDisegnare
+    pixelMatrix
+    roomId
+    coloriDisponibili
+connection
+    client
+    colore
+    chiave_server
+client
+    chiave_client
+    view
+        
+
+Utility
+    classe di encrypt/decrypt -> due metodi che prendono come input chiave e messaggio
+
