@@ -25,17 +25,12 @@ Fase waiting room
     attivabile solo quando si raggiunge il numero di client precedentemente dichiarato (fase creazione stanza)
 Fase gioco
 - creazione view
-    aggiornamento in tempo reale del disegno
     gestione dei panels:
-        top panel: time left + colore assegnato
-        right panel
-            top: chat
-            bottom: disegno da replicare
-        central panel: area di disegno
+        chat panel
+        draw panel
 - gestione mouselistener su central panel
     invio di pacchetti al server contententi coordinate del puntatore -> aggiornamento matrice
 - gestione chat tramite thread
-- gestione time left tramite thread
 
 CLASSI
 view
@@ -55,13 +50,10 @@ view
         draw panel
         game view
 model
-    Server.java
-        LoginManager.java
-            - controllo credenziali
-            - criptazione delle credenziali
-            - invio delle credenziali al server -> salvataggio su file csv
-        RoomManager.java
-            - gestione pulsanti 'create room' e 'join room'
-            - waiting room
-    Client.java
-        - boolean isHost
+    LoginManager.java
+        - controllo credenziali
+        - criptazione delle credenziali
+        - invio delle credenziali al server -> salvataggio su file csv
+    RoomManager.java
+        - gestione pulsanti 'create room' e 'join room'
+        - waiting room
