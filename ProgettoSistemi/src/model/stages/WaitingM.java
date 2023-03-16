@@ -7,12 +7,12 @@ import javax.swing.DefaultListModel;
 
 import view.createRoom.VWaitingRoom;
 
-public class WaitingManager implements ActionListener{
-    private StageManager manager;
+public class WaitingM implements ActionListener {
+    private StageManager stageManager;
     private VWaitingRoom view;
 
-    public WaitingManager(StageManager manager) {
-        this.manager = manager;
+    public WaitingM(StageManager stageManager) {
+        this.stageManager = stageManager;
         view = new VWaitingRoom();
         initialize();
     }

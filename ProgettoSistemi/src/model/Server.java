@@ -106,12 +106,12 @@ public class Server {
     public Outcome joinRoom(String id, Client client) {
         if (id == "" || client == null)
             return Outcome.Op_NACK;
-        
+
         // cerco la stanza
         Room room = findRoom(id);
         if (room == null)
             return null;
-        
+
         return room.addClient(client);
     }
 

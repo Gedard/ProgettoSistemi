@@ -8,15 +8,15 @@ import view.createRoom.VCreateRoom;
 import view.createRoom.VJoinRoom;
 import view.createRoom.VRoomManager;
 
-public class RoomManager implements ActionListener {
+public class RoomM implements ActionListener {
     private StageManager stageManager;
-    private VRoomManager manager;
+    private VRoomManager choose;
     private VCreateRoom create;
     private VJoinRoom join;
 
-    public RoomManager(StageManager stageManager) {
+    public RoomM(StageManager stageManager) {
         this.stageManager = stageManager;
-        manager = new VRoomManager();
+        choose = new VRoomManager();
         create = new VCreateRoom();
         join = new VJoinRoom();
 
@@ -24,23 +24,23 @@ public class RoomManager implements ActionListener {
     }
 
     public void initialize() {
-        manager.addListener(this);
+        choose.addListener(this);
         create.addListener(this);
         join.addListener(this);
 
-        manager.gteLblTitle().setText("Logged in as " + stageManager.getClientUser());
-        switchState(manager);
+        choose.gteLblTitle().setText("Logged in as " + stageManager.getClientUser());
+        switchState(choose);
     }
 
     @Override
     public void actionPerformed(ActionEvent evt) {
 
-        // PULSANTE CREATE ROOM (DA MANAGER)
-        if (evt.getSource() == manager.getBtnCreate())
+        // PULSANTE CREATE ROOM (DA CHOOSE)
+        if (evt.getSource() == choose.getBtnCreate())
             switchState(create);
 
-        // PULSANTE JOIN ROOM (DA MANAGER)
-        if (evt.getSource() == manager.getBtnJoin())
+        // PULSANTE JOIN ROOM (DA CHOOSE)
+        if (evt.getSource() == choose.getBtnJoin())
             switchState(join);
 
         // PULSANTE CREATE ROOM
@@ -82,10 +82,10 @@ public class RoomManager implements ActionListener {
 
         // PULSATE BACK
         if (evt.getSource() == create.getBtnBack() || evt.getSource() == join.getBtnBack())
-            switchState(manager);
+            switchState(choose);
 
         // PULSANTE LOGOUT
-        if (evt.getSource() == manager.getBtnLogout()) {
+        if (evt.getSource() == choose.getBtnLogout()) {
             switchState(null);
             stageManager.loginStage();
         }
@@ -95,7 +95,7 @@ public class RoomManager implements ActionListener {
     // alterna la visibilita' delle varie finestre
     private void switchState(Object view) {
         // rende invisibili tutte le finestre e le resetta
-        manager.setVisible(false);
+        choose.setVisible(false);
         create.setVisible(false);
         create.clear();
         join.setVisible(false);
@@ -103,7 +103,7 @@ public class RoomManager implements ActionListener {
 
         // rende visibile solo quella passata come parametro
         if (view instanceof VRoomManager)
-            manager.setVisible(true);
+            choose.setVisible(true);
         if (view instanceof VCreateRoom)
             create.setVisible(true);
         if (view instanceof VJoinRoom)

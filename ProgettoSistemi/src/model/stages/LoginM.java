@@ -8,12 +8,12 @@ import utility.Outcome;
 import view.login.VLogin;
 import view.login.VSignup;
 
-public class LoginManager implements ActionListener {
+public class LoginM implements ActionListener {
     private StageManager stageManager;
     private VLogin login;
     private VSignup signup;
 
-    public LoginManager(StageManager stageManager) {
+    public LoginM(StageManager stageManager) {
         this.stageManager = stageManager;
         login = new VLogin();
         signup = new VSignup();

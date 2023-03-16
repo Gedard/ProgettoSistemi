@@ -85,7 +85,7 @@ public class VSignup extends JFrame {
 		txtConfirm.setBounds(63, 254, 162, 24);
 		contentPane.add(txtConfirm);
 		
-		lblError1 = new JLabel("Username already taken");
+		lblError1 = new JLabel("Username not available");
 		lblError1.setFont(new Font("Tahoma", Font.ITALIC, 13));
 		lblError1.setForeground(new Color(255, 0, 0));
 		lblError1.setHorizontalAlignment(SwingConstants.CENTER);

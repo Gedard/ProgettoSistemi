@@ -7,9 +7,9 @@ import utility.Outcome;
 
 public class StageManager {
     private Client client;
-    private LoginManager login = null;
-    private RoomManager room = null;
-    private WaitingManager waiting = null;
+    private LoginM login = null;
+    private RoomM room = null;
+    private WaitingM waiting = null;
 
     public StageManager(Client client) {
         this.client = client;
@@ -19,7 +19,7 @@ public class StageManager {
     // primo stage: fase login
     public void loginStage() {
         if (login == null)
-            login = new LoginManager(this);
+            login = new LoginM(this);
         else
             login.initialize();
     }
@@ -27,7 +27,7 @@ public class StageManager {
     // secondo stage: fase di creazione/partecipazione a una stanza
     public void roomStage() {
         if (room == null)
-            room = new RoomManager(this);
+            room = new RoomM(this);
         else
             room.initialize();
     }
@@ -35,7 +35,7 @@ public class StageManager {
     // terzo stage: fase di wait fino all'inizio della partita
     public void waitingStage() {
         if (waiting == null)
-            waiting = new WaitingManager(this);
+            waiting = new WaitingM(this);
         else
             waiting.initialize();
     } 
