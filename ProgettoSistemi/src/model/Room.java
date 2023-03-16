@@ -44,4 +44,8 @@ public class Room {
         return id;
     }
 
+    public ArrayList<Client> getClients() {
+        return clients;
+    }
+
 }

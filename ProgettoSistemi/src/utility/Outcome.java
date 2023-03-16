@@ -7,8 +7,4 @@ public enum Outcome {
     // messaggi di errore per la registrazione
     user_taken, // utente gia' registrato (o stringa vuota)
     pw_doesnt_match, // pw non coincidenti
-
-    // messaggi per la gestione della stanza
-    room_taken, // stanza gia' esistente (o stringa vuota)
-    room_doesnt_exit // stanza non esistente
 }

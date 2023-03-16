@@ -5,14 +5,15 @@ import java.awt.event.ActionListener;
 
 import javax.swing.DefaultListModel;
 
+import model.Client;
 import view.createRoom.VWaitingRoom;
 
 public class WaitingM implements ActionListener {
-    private StageManager stageManager;
+    private Client client;
     private VWaitingRoom view;
 
-    public WaitingM(StageManager stageManager) {
-        this.stageManager = stageManager;
+    public WaitingM(Client client) {
+        this.client = client;
         view = new VWaitingRoom();
         initialize();
     }

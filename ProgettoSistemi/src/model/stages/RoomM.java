@@ -3,19 +3,20 @@ package model.stages;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import model.Client;
 import utility.Outcome;
 import view.createRoom.VCreateRoom;
 import view.createRoom.VJoinRoom;
 import view.createRoom.VRoomManager;
 
 public class RoomM implements ActionListener {
-    private StageManager stageManager;
+    private Client client;
     private VRoomManager choose;
     private VCreateRoom create;
     private VJoinRoom join;
 
-    public RoomM(StageManager stageManager) {
-        this.stageManager = stageManager;
+    public RoomM(Client client) {
+        this.client = client;
         choose = new VRoomManager();
         create = new VCreateRoom();
         join = new VJoinRoom();
@@ -28,7 +29,7 @@ public class RoomM implements ActionListener {
         create.addListener(this);
         join.addListener(this);
 
-        choose.gteLblTitle().setText("Logged in as " + stageManager.getClientUser());
+        choose.gteLblTitle().setText("Logged in as " + client.getUser());
         switchState(choose);
     }
 
@@ -48,11 +49,11 @@ public class RoomM implements ActionListener {
             String id = create.getTxtId().getText();
             int n = Integer.parseInt(create.getBtnGroup().getSelection().getActionCommand());
 
-            Outcome outcome = stageManager.createRoom(id, n);
+            Outcome outcome = client.createRoom(id, n);
             switch (outcome) {
                 case Op_ACK:
                     switchState(null);
-                    stageManager.waitingStage();
+                    client.waitingStage();
                     break;
                 case Op_NACK:
                     create.getLblError().setVisible(true);
@@ -66,11 +67,11 @@ public class RoomM implements ActionListener {
         if (evt.getSource() == join.getBtnJoin()) {
             String id = join.getTxtId().getText();
 
-            Outcome outcome = stageManager.joinRoom(id);
+            Outcome outcome = client.joinRoom(id);
             switch (outcome) {
                 case Op_ACK:
                     switchState(null);
-                    stageManager.waitingStage();
+                    client.waitingStage();
                     break;
                 case Op_NACK:
                     join.getLblError().setVisible(true);
@@ -87,7 +88,7 @@ public class RoomM implements ActionListener {
         // PULSANTE LOGOUT
         if (evt.getSource() == choose.getBtnLogout()) {
             switchState(null);
-            stageManager.loginStage();
+            client.loginStage();
         }
 
     }
