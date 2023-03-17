@@ -8,12 +8,15 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.concurrent.Semaphore;
 
 import com.opencsv.CSVWriter;
 
+import utility.OurMath;
 import utility.Outcome;
 import utility.Pair;
+import utility.Request;
 
 public class Connection extends Thread {
     private static Semaphore semaphore = new Semaphore(1);
@@ -23,6 +26,8 @@ public class Connection extends Thread {
     private ObjectInputStream input;
     private ObjectOutputStream output;
 
+    private String key;
+
     public Connection(Server server, Socket connection) {
         try {
             this.server = server;
@@ -30,6 +35,8 @@ public class Connection extends Thread {
 
             output = new ObjectOutputStream(connection.getOutputStream());
             input = new ObjectInputStream(connection.getInputStream());
+
+            diffieHellmanInit();
 
             this.start();
         } catch (Exception e) {
@@ -43,15 +50,74 @@ public class Connection extends Thread {
             while (true) {
 
                 // ricevo la richiesta
-                Object data = input.readObject();
+                Object data = readInput();
+
+                if (data instanceof Pair) {
+                    Request req = ((Pair<Request, ArrayList<String>>) data).first;
+                    // TODO
+                }
 
                 // TODO: gestione dell'oggetto letto
-                // utilizzo di Pair<Request, ArrayList<String>>, dove l'arraylist contiene le variabili utilizzate durante l'operazione
+                // utilizzo di Pair<Request, ArrayList<String>>, dove l'arraylist contiene le
+                // variabili utilizzate durante l'operazione
 
             }
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void diffieHellmanInit() {
+        Random random = new Random();
+        // esponente
+        int privateExp = Math.abs(random.nextInt());
+        long generator = 1;
+
+        // lettura del generatore dal client
+        try {
+            generator = (Long) readInput();
+        } catch (Exception e) {
+            generator = 1;
+        }
+
+        // lettura della chiave pubblica del client
+        long clientPublicKey = 1;
+        try {
+            clientPublicKey = (Long) readInput();
+        } catch (Exception e) {
+            clientPublicKey = 1;
+        }
+
+        // calcolo chiave pubblica da condividere
+        long publicKey = OurMath.modPow(generator, privateExp, OurMath.MOD);
+
+        sendObject(publicKey);
+
+        // calcolo della chiave segreta
+        long privateKey = OurMath.modPow(clientPublicKey, privateExp, OurMath.MOD);
+
+        // conversione in hexString
+        key = Long.toHexString(privateKey);
+    }
+
+    public void disconnect() throws Exception {
+        input.close();
+        output.close();
+        connection.close();
+    }
+
+    private Object readInput() throws Exception {
+        // TODO: switchcase richiesta
+
+        return input.readObject();
+    }
+
+    public void sendObject(Object obj) {
+        try {
+            output.writeObject(obj);
+        } catch (Exception e) {
+            e.getMessage();
         }
     }
 

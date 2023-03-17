@@ -4,17 +4,24 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Random;
 
 import javax.swing.DefaultListModel;
 
 import model.stages.LoginM;
 import model.stages.RoomM;
 import model.stages.WaitingM;
+import utility.Crypto;
+import utility.OurMath;
 import utility.Outcome;
+import utility.Pair;
+import utility.Request;
 
 public class Client {
     private String user;
-    
+    private String key;
+
     // diverse view del client, che rappresentano i diversi stage
     private LoginM login = null;
     private RoomM room = null;
@@ -31,6 +38,8 @@ public class Client {
             output = new ObjectOutputStream(connection.getOutputStream());
             input = new ObjectInputStream(connection.getInputStream());
 
+            diffieHellmanInit();
+
             // inizializzo la view
             loginStage();
 
@@ -40,30 +49,164 @@ public class Client {
 
     }
 
-    public Outcome login(String user, String pw) {
-        // TODO: richiesta al server
+    public Object readInput() throws Exception {
+        Object obj = null;
+        obj = input.readObject();
 
-        return Outcome.Op_ACK;
+        if (obj instanceof Outcome) {
+            if (obj == Outcome.end) {
+                System.out.println("Il server ha chiesto di chiudere la connessione");
+                disconnect();
+                // attenzione perche' non sono sicuro (ma spero) che
+                // questa funzione killi unicamente questo client senza
+                // causare altri problemi
+                System.exit(0);
+            }
+        }
+
+        return obj;
+    }
+
+    public void disconnect() throws Exception {
+        // invio un messaggio di richiesta chiusura
+        sendObject(Outcome.end);
+
+        Object response = null;
+
+        // attendo la risposta dal client di conferma disconnessione
+        do {
+            response = input.readObject();
+        } while (response != Outcome.end);
+
+        input.close();
+        output.close();
+        connection.close();
+    }
+
+    public void sendObject(Object obj) {
+        try {
+            output.writeObject(obj);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // invia una lista di oggetti
+    // se l'oggetto e' una stringa la crypta
+    public void sendObject(ArrayList<Object> objs) {
+        try {
+            ArrayList<Object> data = new ArrayList<>();
+
+            for (Object obj : objs) {
+                if (obj instanceof String)
+                    data.add(Crypto.encrypt((String) obj, key));
+                else
+                    data.add(obj);
+            }
+
+            output.writeObject(objs);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void diffieHellmanInit() {
+        Random random = new Random();
+        // generatore ed esponente
+        long generator = Math.abs(random.nextLong());
+        int privateExp = Math.abs(random.nextInt());
+
+        // calcolo chiave pubblica da condividere
+        long publicKey = OurMath.modPow(generator, privateExp, OurMath.MOD);
+
+        // invio dati pubblici
+        sendObject(generator);
+        sendObject(publicKey);
+
+        long serverPublicKey = 1;
+
+        // lettura della chiave pubblica del server
+        try {
+            serverPublicKey = (Long) readInput();
+        } catch (Exception e) {
+            serverPublicKey = 1;
+        }
+
+        // calcolo finale della chiave segreta
+        long privateKey = OurMath.modPow(serverPublicKey, privateExp, OurMath.MOD);
+
+        // conversione in hexString
+        key = Long.toHexString(privateKey);
+    }
+
+    public Outcome login(String user, String pw) {
+        try {
+            ArrayList<String> data = new ArrayList<>();
+            data.add(Crypto.encrypt(user, key));
+            data.add(Crypto.encrypt(pw, key));
+
+            Pair<Request, ArrayList<String>> req = new Pair<>(Request.login, data);
+
+            // invio al server
+            sendObject(req);
+            // leggo la risposta
+            return (Outcome) readInput();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Outcome.Op_NACK;
+        }
     }
 
     public Outcome signup(String user, String pw, String confirm) {
-        // TODO: richiesta al server
+        try {
+            ArrayList<String> data = new ArrayList<>();
+            data.add(Crypto.encrypt(user, key));
+            data.add(Crypto.encrypt(pw, key));
+            data.add(Crypto.encrypt(confirm, key));
 
-        return Outcome.Op_ACK;
+            Pair<Request, ArrayList<String>> req = new Pair<>(Request.signup, data);
+
+            // invio al server
+            output.writeObject(req);
+            // leggo la risposta
+            return (Outcome) readInput();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Outcome.Op_NACK;
+        }
     }
 
     public Outcome createRoom(String id, int n) {
-        // TODO: richiesta al server per la creazione di una stanza,
-        // per ora ritorno sempre Op_ACK
+        try {
+            Pair<String, Integer> data = new Pair<>(Crypto.encrypt(id, key), n);
+            Pair<Request, Pair<String, Integer>> req = new Pair<>(Request.login, data);
+    
+            // invio al server
+            sendObject(req);
+            // leggo la risposta
+            return (Outcome) readInput();
 
-        return Outcome.Op_ACK;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Outcome.Op_NACK;
+        }
     }
 
     public Outcome joinRoom(String id) {
-        // TODO: richiesta al server per la creazione di una stanza,
-        // per ora ritorno sempre Op_ACK
+        try {
+            Pair<Request, String> req = new Pair<>(Request.login, Crypto.encrypt(id, key));
+    
+            // invio al server
+            sendObject(req);
+            // leggo la risposta
+            return (Outcome) readInput();
 
-        return Outcome.Op_ACK;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Outcome.Op_NACK;
+        }
     }
 
     // primo stage: fase login
@@ -88,7 +231,7 @@ public class Client {
             waiting = new WaitingM(this);
         else
             waiting.initialize();
-    } 
+    }
 
     public void updateList(DefaultListModel<String> model) {
         waiting.updateList(model);
