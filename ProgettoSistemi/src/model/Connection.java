@@ -13,6 +13,7 @@ import java.util.concurrent.Semaphore;
 
 import com.opencsv.CSVWriter;
 
+import utility.Crypto;
 import utility.OurMath;
 import utility.Outcome;
 import utility.Pair;
@@ -37,6 +38,11 @@ public class Connection extends Thread {
             input = new ObjectInputStream(connection.getInputStream());
 
             diffieHellmanInit();
+
+            String encrypted = (String) input.readObject();
+            String msg = Crypto.decrypt(encrypted, key);
+            System.out.println(msg);
+            System.out.println(Crypto.encrypt(msg, key));
 
             this.start();
         } catch (Exception e) {

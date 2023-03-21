@@ -8,7 +8,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class Crypto {
 
-    private static final String ALGORITHM = "AES";
+    private static final String ALGORITHM = "RC2";
 
     public static String encrypt(String plainText, String key) throws Exception {
         key = pad(key);
@@ -31,11 +31,11 @@ public class Crypto {
     // per evitare problemi di lunghezza di chiave, anche se non sarebbe proprio la
     // scelta migliore
     private static String pad(String key) {
-        if (key.length() > 32) {
-            return key.substring(0, 32);
+        if (key.length() > 16) {
+            return key.substring(0, 16);
         }
 
-        while (key.length() != 16 && key.length() != 24 && key.length() != 32) {
+        while (key.length() % 8 != 0) {
             key += "0";
         }
 

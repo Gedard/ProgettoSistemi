@@ -1,12 +1,15 @@
 package model;
 
+import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Random;
 
+import javax.imageio.ImageIO;
 import javax.swing.DefaultListModel;
 
 import model.stages.LoginM;
@@ -32,21 +35,45 @@ public class Client {
     private ObjectOutputStream output;
 
     public Client() {
-        try {
+        boolean connected = false; // permette di ritentare la connessione se il server
+        // non e' ancora attivo quando il client richiede il servizio
+        do {
+            try {
+                connection = new Socket(InetAddress.getLocalHost(), 8080);
+                connected = true;
+                output = new ObjectOutputStream(connection.getOutputStream());
+                input = new ObjectInputStream(connection.getInputStream());
 
-            connection = new Socket(InetAddress.getLocalHost(), 8080);
-            output = new ObjectOutputStream(connection.getOutputStream());
-            input = new ObjectInputStream(connection.getInputStream());
+                diffieHellmanInit();
 
-            diffieHellmanInit();
+                String msg = "sksk";
+                String encrypted = Crypto.encrypt(msg, key);
+                System.out.println(encrypted);
+                System.out.println(Crypto.decrypt(encrypted, key));
 
-            // inizializzo la view
-            loginStage();
+                output.writeObject(encrypted);
 
-        } catch (Exception e) {
-            System.out.println("Impossibile connettersi al server");
-        }
+                // inizializzo la view
+                loginStage();
 
+                disconnect();
+            } catch (ConnectException e) {
+                // catch per le eccezioni causate dall'attivazione di un client
+                // quando il server non e' ancora stato acceso
+                System.out.println("Connessione fallita. Nuovo tentativo in un secondo");
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
+            } catch (EOFException e) {
+                // EOFException - if this input stream reaches the end before reading eight
+                // bytes.
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        } while (!connected);
     }
 
     public Object readInput() throws Exception {
@@ -182,7 +209,7 @@ public class Client {
         try {
             Pair<String, Integer> data = new Pair<>(Crypto.encrypt(id, key), n);
             Pair<Request, Pair<String, Integer>> req = new Pair<>(Request.login, data);
-    
+
             // invio al server
             sendObject(req);
             // leggo la risposta
@@ -197,7 +224,7 @@ public class Client {
     public Outcome joinRoom(String id) {
         try {
             Pair<Request, String> req = new Pair<>(Request.login, Crypto.encrypt(id, key));
-    
+
             // invio al server
             sendObject(req);
             // leggo la risposta
