@@ -41,4 +41,24 @@ public class Crypto {
 
         return key;
     }
+
+    public static String hash(String plain) {
+        try {
+            String hash = BCrypt.hashpw(plain, BCrypt.gensalt(12));
+
+            return hash.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return plain;
+        }
+    }
+
+    public static boolean validatePassword(String plainPW, String hashedPW) {
+        try {
+            return BCrypt.checkpw(plainPW, hashedPW);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

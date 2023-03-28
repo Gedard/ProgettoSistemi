@@ -1,6 +1,15 @@
 package model;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
 import java.io.EOFException;
+import java.io.File;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
@@ -10,274 +19,390 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
-import javax.swing.DefaultListModel;
+import javax.swing.JButton;
 
-import model.stages.LoginM;
-import model.stages.RoomM;
-import model.stages.WaitingM;
 import utility.Crypto;
 import utility.OurMath;
 import utility.Outcome;
 import utility.Pair;
 import utility.Request;
+import view.ClientView;
+import view.ImagePanel;
+import view.MatrixPanel;
+import view.Panel;
 
-public class Client {
-    private String user;
-    private String key;
+public class Client implements MouseMotionListener, ActionListener {
 
-    // diverse view del client, che rappresentano i diversi stage
-    private LoginM login = null;
-    private RoomM room = null;
-    private WaitingM waiting = null;
+	private Socket connection;
+	private ObjectInputStream input;
+	private ObjectOutputStream output;
 
-    private Socket connection;
-    private ObjectInputStream input;
-    private ObjectOutputStream output;
+	private ClientView view;
+	private Dimension size;
+	private int nStanza;
+	private String key;
 
-    public Client() {
-        boolean connected = false; // permette di ritentare la connessione se il server
-        // non e' ancora attivo quando il client richiede il servizio
-        do {
-            try {
-                connection = new Socket(InetAddress.getLocalHost(), 8080);
-                connected = true;
-                output = new ObjectOutputStream(connection.getOutputStream());
-                input = new ObjectInputStream(connection.getInputStream());
+	private LoginM loginManager = null;
+	private boolean logged = false;
 
-                diffieHellmanInit();
+	private Color[][] matrix;
+	private Color color;
+	private BufferedImage image;
+	private JButton startButton, finishButton;
 
-                String msg = "sksk";
-                String encrypted = Crypto.encrypt(msg, key);
-                System.out.println(encrypted);
-                System.out.println(Crypto.decrypt(encrypted, key));
+	private boolean isReady = false;
+	private final String WAITING_MESSAGE = "In attesa di altri giocatori";
 
-                output.writeObject(encrypted);
+	public Client() {
+		boolean connected = false; // permette di ritentare la connessione se il server
+		// non e' ancora attivo quando il client richiede il servizio
+		do {
+			try {
+				connection = new Socket(InetAddress.getLocalHost(), 8080);
+				connected = true;
+				output = new ObjectOutputStream(connection.getOutputStream());
+				input = new ObjectInputStream(connection.getInputStream());
 
-                // inizializzo la view
-                loginStage();
+				diffieHellmanInit();
 
-                disconnect();
-            } catch (ConnectException e) {
-                // catch per le eccezioni causate dall'attivazione di un client
-                // quando il server non e' ancora stato acceso
-                System.out.println("Connessione fallita. Nuovo tentativo in un secondo");
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                }
-            } catch (EOFException e) {
-                // EOFException - if this input stream reaches the end before reading eight
-                // bytes.
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+				loginSetup();
 
-        } while (!connected);
-    }
+				do {
+					Thread.sleep(1000);
+				} while (!logged);
 
-    public Object readInput() throws Exception {
-        Object obj = null;
-        obj = input.readObject();
+				// DA QUI IN POI IL CODICE E' COPIA INCOLLA DI QUELLO VECCHIO
 
-        if (obj instanceof Outcome) {
-            if (obj == Outcome.end) {
-                System.out.println("Il server ha chiesto di chiudere la connessione");
-                disconnect();
-                // attenzione perche' non sono sicuro (ma spero) che
-                // questa funzione killi unicamente questo client senza
-                // causare altri problemi
-                System.exit(0);
-            }
-        }
+				matrix = new Color[Stanza.getRow()][Stanza.getCol()];
+				initializeMatrix();
 
-        return obj;
-    }
+				Object obj = readInput();
 
-    public void disconnect() throws Exception {
-        // invio un messaggio di richiesta chiusura
-        sendObject(Outcome.end);
+				// setto la dimensione del client
+				if (obj instanceof Dimension) {
+					this.size = (Dimension) obj;
+				}
 
-        Object response = null;
+				obj = readInput();
 
-        // attendo la risposta dal client di conferma disconnessione
-        do {
-            response = input.readObject();
-        } while (response != Outcome.end);
+				// setto il numero di stanza (utile solo per il titolo della view)
+				if (obj instanceof Integer) {
+					this.nStanza = (Integer) obj;
+				}
 
-        input.close();
-        output.close();
-        connection.close();
-    }
+				createWindow();
 
-    public void sendObject(Object obj) {
-        try {
-            output.writeObject(obj);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+				obj = readInput();
 
-    // invia una lista di oggetti
-    // se l'oggetto e' una stringa la crypta
-    public void sendObject(ArrayList<Object> objs) {
-        try {
-            ArrayList<Object> data = new ArrayList<>();
+				// setto il colore
+				if (obj instanceof Color) {
+					color = (Color) obj;
+				}
 
-            for (Object obj : objs) {
-                if (obj instanceof String)
-                    data.add(Crypto.encrypt((String) obj, key));
-                else
-                    data.add(obj);
-            }
+				obj = readInput();
 
-            output.writeObject(objs);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+				// ricevo il percorso file dell'immagine da disegnare
+				if (obj instanceof String) {
+					// quindi ricavo l'immagine
+					String path = (String) obj;
+					// TODO: fixa e utilizza il percorso relativo
+					// image = ImageIO.read(getClass().getResourceAsStream(path + ".png"));
+					File f = new File(
+							"C:\\Users\\zamun\\OneDrive\\Documenti\\GitHub\\ProgettoTPS\\res\\images\\image1.png");
+					image = ImageIO.read(f);
+				}
 
-    private void diffieHellmanInit() {
-        Random random = new Random();
-        // generatore ed esponente
-        long generator = Math.abs(random.nextLong());
-        int privateExp = Math.abs(random.nextInt());
+				// aspetto fino a quando non ricevo un segnale di start
+				while (true) {
+					if (!isReady) {
+						output.writeObject(Outcome.notReady);
+					} else {
+						output.writeObject(Outcome.ready);
+					}
 
-        // calcolo chiave pubblica da condividere
-        long publicKey = OurMath.modPow(generator, privateExp, OurMath.MOD);
+					obj = readInput();
 
-        // invio dati pubblici
-        sendObject(generator);
-        sendObject(publicKey);
+					if (obj instanceof Outcome)
+						if ((Outcome) obj == Outcome.start) {
+							isReady = true;
+							break;
+						}
+				}
 
-        long serverPublicKey = 1;
+				view.setMsgColor(color);
+				view.setMsg("Questo e' il tuo colore");
+				Thread.sleep(1000);
 
-        // lettura della chiave pubblica del server
-        try {
-            serverPublicKey = (Long) readInput();
-        } catch (Exception e) {
-            serverPublicKey = 1;
-        }
+				modifyWindow();
 
-        // calcolo finale della chiave segreta
-        long privateKey = OurMath.modPow(serverPublicKey, privateExp, OurMath.MOD);
+				do {
+					obj = readInput();
 
-        // conversione in hexString
-        key = Long.toHexString(privateKey);
-    }
+					// ricevo il punto da colorare
+					if (obj instanceof Point) {
+						Point p = (Point) obj;
+						matrix[p.y][p.x] = color;
+					}
 
-    public Outcome login(String user, String pw) {
-        try {
-            ArrayList<String> data = new ArrayList<>();
-            data.add(Crypto.encrypt(user, key));
-            data.add(Crypto.encrypt(pw, key));
+					// gestisco l'esito
+					if (obj instanceof Outcome) {
+						if ((Outcome) obj == Outcome.gameOver)
+							break;
+					}
 
-            Pair<Request, ArrayList<String>> req = new Pair<>(Request.login, data);
+				} while (connection.isConnected());
 
-            // invio al server
-            sendObject(req);
-            // leggo la risposta
-            return (Outcome) readInput();
+				obj = readInput();
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Outcome.Op_NACK;
-        }
-    }
+				// ricevo la matrice finale
+				if (obj instanceof Color[][]) {
+					Color[][] matrice = (Color[][]) obj;
+					for (int i = 0; i < matrice.length; ++i) {
+						for (int j = 0; j < matrice[i].length; ++j) {
+							this.matrix[i][j] = matrice[i][j];
+						}
+					}
+				}
 
-    public Outcome signup(String user, String pw, String confirm) {
-        try {
-            ArrayList<String> data = new ArrayList<>();
-            data.add(Crypto.encrypt(user, key));
-            data.add(Crypto.encrypt(pw, key));
-            data.add(Crypto.encrypt(confirm, key));
+				// visualizza la matrice finale,
+				// ultimo stage della ClientView
+				finalWindow();
 
-            Pair<Request, ArrayList<String>> req = new Pair<>(Request.signup, data);
+				disconnect();
+			} catch (ConnectException e) {
+				// catch per le eccezioni causate dall'attivazione di un client
+				// quando il server non e' ancora stato acceso
+				System.out.println("Connessione fallita. Nuovo tentativo in un secondo");
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
+			} catch (EOFException e) {
+				// EOFException - if this input stream reaches the end before reading eight
+				// bytes.
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} while (!connected);
+	}
 
-            // invio al server
-            output.writeObject(req);
-            // leggo la risposta
-            return (Outcome) readInput();
+	// primo stage: fase login
+	public void loginSetup() {
+		if (loginManager == null)
+			loginManager = new LoginM(this);
+		else
+			loginManager.initialize();
+	}
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Outcome.Op_NACK;
-        }
-    }
+	private void diffieHellmanInit() {
+		Random random = new Random();
+		// generatore ed esponente
+		long generator = Math.abs(random.nextLong());
+		int privateExp = Math.abs(random.nextInt());
 
-    public Outcome createRoom(String id, int n) {
-        try {
-            Pair<String, Integer> data = new Pair<>(Crypto.encrypt(id, key), n);
-            Pair<Request, Pair<String, Integer>> req = new Pair<>(Request.login, data);
+		// calcolo chiave pubblica da condividere
+		long publicKey = OurMath.modPow(generator, privateExp, OurMath.MOD);
 
-            // invio al server
-            sendObject(req);
-            // leggo la risposta
-            return (Outcome) readInput();
+		// invio dati pubblici
+		sendObject(generator);
+		sendObject(publicKey);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Outcome.Op_NACK;
-        }
-    }
+		long serverPublicKey = 1;
 
-    public Outcome joinRoom(String id) {
-        try {
-            Pair<Request, String> req = new Pair<>(Request.login, Crypto.encrypt(id, key));
+		// lettura della chiave pubblica del server
+		try {
+			serverPublicKey = (Long) readInput();
+		} catch (Exception e) {
+			serverPublicKey = 1;
+		}
 
-            // invio al server
-            sendObject(req);
-            // leggo la risposta
-            return (Outcome) readInput();
+		// calcolo finale della chiave segreta
+		long privateKey = OurMath.modPow(serverPublicKey, privateExp, OurMath.MOD);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Outcome.Op_NACK;
-        }
-    }
+		// conversione in hexString
+		key = Long.toHexString(privateKey);
+	}
 
-    // primo stage: fase login
-    public void loginStage() {
-        if (login == null)
-            login = new LoginM(this);
-        else
-            login.initialize();
-    }
+	public Outcome login(String user, String pw) {
+		try {
+			ArrayList<String> data = new ArrayList<>();
+			data.add(Crypto.encrypt(user, key));
+			data.add(Crypto.encrypt(pw, key));
 
-    // secondo stage: fase di creazione/partecipazione a una stanza
-    public void roomStage() {
-        if (room == null)
-            room = new RoomM(this);
-        else
-            room.initialize();
-    }
+			Pair<Request, ArrayList<String>> req = new Pair<>(Request.login, data);
 
-    // terzo stage: fase di wait fino all'inizio della partita
-    public void waitingStage() {
-        if (waiting == null)
-            waiting = new WaitingM(this);
-        else
-            waiting.initialize();
-    }
+			// invio al server
+			sendObject(req);
+			// leggo la risposta
+			return (Outcome) readInput();
 
-    public void updateList(DefaultListModel<String> model) {
-        waiting.updateList(model);
-    }
+		} catch (Exception e) {
+			e.printStackTrace();
+			return Outcome.Op_NACK;
+		}
+	}
 
-    public void updateCount(int count, int tot) {
-        waiting.updateCount(count, tot);
-    }
+	public Outcome signup(String user, String pw, String confirm) {
+		try {
+			ArrayList<String> data = new ArrayList<>();
+			data.add(Crypto.encrypt(user, key));
+			data.add(Crypto.encrypt(pw, key));
+			data.add(Crypto.encrypt(confirm, key));
 
-    public static void main(String[] args) {
-        Client client = new Client();
-    }
+			Pair<Request, ArrayList<String>> req = new Pair<>(Request.signup, data);
 
-    public String getUser() {
-        return user;
-    }
+			// invio al server
+			output.writeObject(req);
+			// leggo la risposta
+			return (Outcome) readInput();
 
-    public void setUser(String user) {
-        this.user = user;
-    }
+		} catch (Exception e) {
+			e.printStackTrace();
+			return Outcome.registration_failed;
+		}
+	}
+
+	// readObject "filtrata":
+	// funziona come una semplice readObject, solo che quando viene letto
+	// un Outcome.end (che significa chiudere la connessione e basta, qualunque cosa
+	// sia successa)
+	// gestisce subito il problema di chiusura della connessione per evitare errori
+	// ed e' molto piu' comodo far cosi' al posto di dover
+	// mettere il controllo dopo ogni readObject
+	public Object readInput() throws Exception {
+		Object obj = ""; // sarebbe meglio istanziarlo a null e gestire
+		// quel caso da altre parti
+		// ma per ora mettendo stringa vuota non dovrebbero esserci problemi
+		obj = input.readObject();
+
+		if (obj instanceof Outcome) {
+			if (obj == Outcome.end) {
+				System.out.println("Il server ha chiesto di chiudere la connessione");
+				disconnect();
+				// attenzione perche' non sono sicuro (ma spero) che
+				// questa funzione killi unicamente questo client senza
+				// causare altri problemi
+				System.exit(0);
+			}
+		}
+
+		return obj;
+	}
+
+	public void disconnect() throws Exception {
+		// invio un messaggio di richiesta chiusura
+		sendObject(Outcome.end);
+
+		Object response = null;
+
+		// attendo la risposta dal client di conferma disconnessione
+		do {
+			response = input.readObject();
+		} while (response != Outcome.end);
+
+		input.close();
+		output.close();
+		connection.close();
+	}
+
+	public void initializeMatrix() {
+		for (int i = 0; i < Stanza.getRow(); ++i) {
+			for (int j = 0; j < Stanza.getCol(); ++j) {
+				matrix[i][j] = Color.white;
+			}
+		}
+	}
+
+	private void finalWindow() {
+		view.setMsgColor(Color.black);
+		view.setMsg("Ecco il risultato");
+		view.removeButton();
+	}
+
+	private void createWindow() {
+		view = new ClientView(size, "Client " + connection.getLocalPort() + " Stanza " + nStanza);
+		view.setMsg(WAITING_MESSAGE, true);
+
+		startButton = new JButton("Inizia");
+		startButton.addActionListener(this);
+		view.setButton(startButton);
+	}
+
+	// rimuove i pannelli precedenti
+	// aggiunge un pannello di messaggio
+	// visualizza l'immagine
+	// aggiunge un pannello con il MouseMotionListener
+	private void modifyWindow() throws Exception {
+		Panel panel = null;
+
+		view.removeButton();
+		view.setMsg("La partita sta per cominciare", true);
+
+		synchronized (this) {
+			wait(2000); // aspetto 2 secondi, in seguito ai quali visualizzo l'immagine
+
+			int count = 5;
+			view.setMsg("Memorizza l'immagine");
+			panel = new ImagePanel(size, image);
+			view.setImgPanel((ImagePanel) panel);
+
+			do { // aspetto 'count' secondi, in seguito ai quali inizio il gioco
+				view.setMsg("Memorizza l'immagine (" + count + ")");
+				wait(1000);
+				count--;
+			} while (count >= 0);
+		}
+
+		finishButton = new JButton("Finisci");
+		finishButton.addActionListener(this);
+		view.setButton(finishButton);
+
+		view.setMsgColor(color);
+		view.setMsg("E ora disegna!");
+		view.removeImagePanel();
+		panel = new MatrixPanel(size, this.matrix, Stanza.getRow(), Stanza.getCol());
+		panel.addMouseMotionListener(this);
+		view.setMatrixPanel((MatrixPanel) panel);
+	}
+
+	@Override
+	public void mouseDragged(MouseEvent evt) {
+		sendObject(evt.getPoint());
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent evt) {
+		if (evt.getSource() == startButton) {
+			isReady = true;
+			System.out.println("Inizia adesso");
+		}
+
+		if (evt.getSource() == finishButton) {
+			sendObject(Outcome.finished);
+			System.out.println("Finisci adesso");
+		}
+	}
+
+	public void sendObject(Object obj) {
+		try {
+			output.writeObject(obj);
+		} catch (Exception e) {
+			e.getMessage();
+		}
+	}
+
+	public void setLogged(boolean logged) {
+		this.logged = logged;
+	}
+
+	@Override
+	public void mouseMoved(MouseEvent evt) {
+
+	}
+
+	public static void main(String[] args) {
+		new Client();
+	}
 
 }

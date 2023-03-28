@@ -1,9 +1,8 @@
-package model.stages;
+package model;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import model.Client;
 import utility.Outcome;
 import view.login.VLogin;
 import view.login.VSignup;
@@ -38,16 +37,13 @@ public class LoginM implements ActionListener {
             String user = login.getTxtUser().getText();
             String pw = toString(login.getTxtPw().getPassword());
 
-            // TODO: encrypt dati
-
             // invio dati al server per login
             Outcome outcome = client.login(user, pw);
 
             if (outcome == Outcome.Op_ACK) {
                 login.setVisible(false);
                 // passaggio alla fase successiva
-                client.setUser(user);
-                client.roomStage();
+                client.setLogged(true);
             } else
                 login.getLblError().setVisible(true);
         }
@@ -63,8 +59,6 @@ public class LoginM implements ActionListener {
             String user = signup.getTxtUser().getText();
             String pw = toString(signup.getTxtPw().getPassword());
             String confirm = toString(signup.getTxtConfirm().getPassword());
-
-            // TODO: encrypt dati
 
             // invio dati al server per signup
             Outcome outcome = client.signup(user, pw, confirm);
