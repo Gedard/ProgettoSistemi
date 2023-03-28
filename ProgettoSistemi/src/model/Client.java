@@ -10,6 +10,7 @@ import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
@@ -105,11 +106,7 @@ public class Client implements MouseMotionListener, ActionListener {
 				if (obj instanceof String) {
 					// quindi ricavo l'immagine
 					String path = (String) obj;
-					// TODO: fixa e utilizza il percorso relativo
-					// image = ImageIO.read(getClass().getResourceAsStream(path + ".png"));
-					File f = new File(
-							"C:\\Users\\zamun\\OneDrive\\Documenti\\GitHub\\ProgettoTPS\\res\\images\\image1.png");
-					image = ImageIO.read(f);
+					image = ImageIO.read(new FileInputStream("ProgettoSistemi\\res" + path + ".png"));
 				}
 
 				// aspetto fino a quando non ricevo un segnale di start
